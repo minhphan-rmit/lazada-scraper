@@ -6,6 +6,7 @@ import re
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from datetime import datetime
 
 
 class ScrapeLazada():
@@ -72,16 +73,20 @@ class ScrapeLazada():
             percentage = re.findall(r'\d+%', sale_text)
             return percentage[0] if percentage else '0%'
         return '0%'
+    
+    def __init__(self, url, total_pages, file_name):
+        self.url = url
+        self.total_pages = total_pages
+        self.file_name = file_name
 
     def scrape(self):
         """Scrapes product data from Lazada and saves it to an Excel file."""
-        url = 'https://www.lazada.vn/catalog/?spm=a2o4n.searchlistcategory.search.d_go.2099564f46GQyC&q=l%C4%83n%20n%C3%A1ch'
-        total_pages = 56
+        """Modified scrape method to use instance attributes."""
         driver = webdriver.Chrome()
-        driver.get(url)
+        driver.get(self.url)
 
         products = []
-        for i in range(total_pages):
+        for i in range(self.total_pages):
             WebDriverWait(driver, 5).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#root")))
             time.sleep(2)
 
@@ -102,16 +107,12 @@ class ScrapeLazada():
             time.sleep(3)
 
         df = pd.DataFrame(products, columns=['Product Name', 'Price', 'Location', 'Average Rating', 'Total Reviews', 'Items Sold', 'Sale Info'])
-        df.to_excel("out.xlsx", index=False)
-        print('Data saved in local disk')
+        
+        # Format the current time as a string
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        final_file_name = f"{self.file_name}-{timestamp}.xlsx"
+
+        df = pd.DataFrame(products, columns=['Product Name', 'Price', 'Location', 'Average Rating', 'Total Reviews', 'Items Sold', 'Sale Info'])
+        df.to_excel(final_file_name, index=False)
+        print(f'Data saved in local disk as {final_file_name}')
         driver.close()
-
-
-def main():
-    """Main function to initialize and run the Lazada scraper."""
-    scraper = ScrapeLazada()
-    scraper.scrape()
-
-
-if __name__ == "__main__":
-    main()
